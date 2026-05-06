@@ -84,6 +84,8 @@ public class CameraConnectionFragment extends Fragment {
 
     private static final String FRAGMENT_DIALOG = "dialog";
 
+    private Surface previewSurface;
+
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
         ORIENTATIONS.append(Surface.ROTATION_90, 0);
@@ -100,14 +102,42 @@ public class CameraConnectionFragment extends Fragment {
     /** The layout identifier to inflate for this Fragment. */
     private final int layout;
 
+    private static final int STATE_PREVIEW = 0;
+    private static final int STATE_WAITING_LOCK = 1;
+    private static final int STATE_PICTURE_TAKEN = 2;
+    private int mState = STATE_PREVIEW;
+
     private final ConnectionCallback cameraConnectionCallback;
     private final CameraCaptureSession.CaptureCallback captureCallback =
             new CameraCaptureSession.CaptureCallback() {
+                private void process(CaptureResult result) {
+                    switch (mState) {
+                        case STATE_PREVIEW: {
+                            break;
+                        }
+                        case STATE_WAITING_LOCK: {
+                            Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
+                            if (afState == null) {
+                                captureFinalStill();
+                            } else if (CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED == afState ||
+                                    CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED == afState) {
+                                Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+                                if (aeState == null || aeState == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
+                                    mState = STATE_PICTURE_TAKEN;
+                                    captureFinalStill();
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+
                 @Override
                 public void onCaptureProgressed(
                         final CameraCaptureSession session,
                         final CaptureRequest request,
                         final CaptureResult partialResult) {
+                    process(partialResult);
                 }
 
                 @Override
@@ -115,6 +145,7 @@ public class CameraConnectionFragment extends Fragment {
                         final CameraCaptureSession session,
                         final CaptureRequest request,
                         final TotalCaptureResult result) {
+                    process(result);
                 }
             };
 
@@ -227,7 +258,7 @@ public class CameraConnectionFragment extends Fragment {
 
         try {
             final CaptureRequest.Builder focusBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            focusBuilder.addTarget(new Surface(textureView.getSurfaceTexture()));
+            focusBuilder.addTarget(previewSurface);
 
             focusBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, afRegions);
             focusBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
@@ -340,64 +371,14 @@ public class CameraConnectionFragment extends Fragment {
 
     public void captureStillPicture() {
         try {
-            if (cameraDevice == null) return;
+            if (cameraDevice == null || cameraCaptureSession == null) return;
 
-            final CaptureRequest.Builder afBuilder =
-                    cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
-            afBuilder.addTarget(captureReader.getSurface());
+            mState = STATE_WAITING_LOCK;
 
-            if (afRegions != null) {
-                afBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, afRegions);
-            }
-            if (zoomRegion != null) {
-                afBuilder.set(CaptureRequest.SCALER_CROP_REGION, zoomRegion);
-            }
-
-            afBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
-            afBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
-            afBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
-            afBuilder.set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_AUTO);
-
-            cameraCaptureSession.capture(afBuilder.build(), new CameraCaptureSession.CaptureCallback() {
-                @Override
-                public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
-                    Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
-                    String stateDesc;
-                    if (afState != null) {
-                        switch (afState) {
-                            case CaptureResult.CONTROL_AF_STATE_INACTIVE:
-                                stateDesc = "INACTIVE (0)"; break;
-                            case CaptureResult.CONTROL_AF_STATE_PASSIVE_SCAN:
-                                stateDesc = "PASSIVE_SCAN (1)"; break;
-                            case CaptureResult.CONTROL_AF_STATE_PASSIVE_FOCUSED:
-                                stateDesc = "PASSIVE_FOCUSED (2)"; break;
-                            case CaptureResult.CONTROL_AF_STATE_ACTIVE_SCAN:
-                                stateDesc = "ACTIVE_SCAN (3)"; break;
-                            case CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED:
-                                stateDesc = "FOCUSED_LOCKED (4)"; break;
-                            case CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED:
-                                stateDesc = "NOT_FOCUSED_LOCKED (5)"; break;
-                            case CaptureResult.CONTROL_AF_STATE_PASSIVE_UNFOCUSED:
-                                stateDesc = "PASSIVE_UNFOCUSED (6)"; break;
-                            default:
-                                stateDesc = "UNKNOWN (" + afState + ")";
-                        }
-                    } else {
-                        stateDesc = "NULL";
-                    }
-
-                    if (afState != null && (
-                            afState == CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED ||
-                                    afState == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED)) {
-                        captureFinalStill();
-                    } else {
-                        Log.w("FocusCheck", "AF not locked - skipping high-res capture.");
-                    }
-                }
-            }, backgroundHandler);
-
+            captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
+            cameraCaptureSession.capture(captureRequestBuilder.build(), captureCallback, backgroundHandler);
         } catch (CameraAccessException e) {
-            //Log.e("AF_Debug", "AF trigger failed: " + e.getMessage());
+            Log.e("CameraConnection", "captureStillPicture failed: " + e.getMessage());
         }
     }
 
@@ -434,7 +415,15 @@ public class CameraConnectionFragment extends Fragment {
             cameraCaptureSession.capture(captureBuilder.build(), new CameraCaptureSession.CaptureCallback() {
                 @Override
                 public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
-                    //Log.d("ResearchCapture", "High-res research mode image captured.");
+                    // Reset focus trigger and state back to preview
+                    try {
+                        captureRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
+                        cameraCaptureSession.capture(captureRequestBuilder.build(), captureCallback, backgroundHandler);
+                        mState = STATE_PREVIEW;
+                        cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), captureCallback, backgroundHandler);
+                    } catch (CameraAccessException e) {
+                        e.printStackTrace();
+                    }
                 }
             }, backgroundHandler);
 
@@ -456,7 +445,7 @@ public class CameraConnectionFragment extends Fragment {
                 }
 
                 // Apply updated repeating request for preview
-                cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), null, backgroundHandler);
+                cameraCaptureSession.setRepeatingRequest(captureRequestBuilder.build(), captureCallback, backgroundHandler);
 
             } catch (CameraAccessException e) {
                 e.printStackTrace();
@@ -659,7 +648,7 @@ public class CameraConnectionFragment extends Fragment {
 
         try {
             final CaptureRequest.Builder focusBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-            focusBuilder.addTarget(new Surface(textureView.getSurfaceTexture()));
+            focusBuilder.addTarget(previewSurface);
 
             boolean usingAfRegion = false;
 
@@ -787,9 +776,9 @@ public class CameraConnectionFragment extends Fragment {
     private void closeCamera() {
         try {
             cameraOpenCloseLock.acquire();
-            if (null != captureSession) {
-                captureSession.close();
-                captureSession = null;
+            if (null != cameraCaptureSession) {  // was: captureSession
+                cameraCaptureSession.close();
+                cameraCaptureSession = null;
             }
             if (null != cameraDevice) {
                 cameraDevice.close();
@@ -798,6 +787,10 @@ public class CameraConnectionFragment extends Fragment {
             if (null != previewReader) {
                 previewReader.close();
                 previewReader = null;
+            }
+            if (null != captureReader) {  // add this — it's never closed!
+                captureReader.close();
+                captureReader = null;
             }
         } catch (final InterruptedException e) {
             throw new RuntimeException("Interrupted while trying to lock camera closing.", e);
@@ -838,6 +831,7 @@ public class CameraConnectionFragment extends Fragment {
 
             texture.setDefaultBufferSize(previewSize.getWidth(), previewSize.getHeight());
             final Surface surface = new Surface(texture);
+            previewSurface = surface;
 
             captureRequestBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW); // Assign here
             captureRequestBuilder.addTarget(surface);
@@ -860,7 +854,7 @@ public class CameraConnectionFragment extends Fragment {
                                 captureRequestBuilder.set(CaptureRequest.FLASH_MODE, CameraMetadata.FLASH_MODE_TORCH);
 
                                 previewRequest = captureRequestBuilder.build();
-                                cameraCaptureSession.setRepeatingRequest(previewRequest, null, backgroundHandler);
+                                cameraCaptureSession.setRepeatingRequest(previewRequest, captureCallback, backgroundHandler);
                             } catch (CameraAccessException e) {
                                 e.printStackTrace();
                             }

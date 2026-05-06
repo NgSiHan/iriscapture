@@ -1,5 +1,5 @@
 {
-  "installationFolder": "C:\\Users\\MA\\Desktop\\newapp\\IrisQualityCapture\\opencv\\build\\intermediates\\prefab_package\\debug\\prefab",
+  "installationFolder": "C:\\dev\\IrisQualityCapture\\opencv\\build\\intermediates\\prefab_package\\debug\\prefab",
   "gradlePath": ":opencv",
   "packageInfo": {
     "packageName": "opencv",
@@ -8,7 +8,7 @@
     "modules": [
       {
         "moduleName": "opencv_jni_shared",
-        "moduleHeaders": "C:\\Users\\MA\\Desktop\\newapp\\IrisQualityCapture\\opencv\\native\\jni\\include",
+        "moduleHeaders": "C:\\dev\\IrisQualityCapture\\opencv\\native\\jni\\include",
         "moduleExportLibraries": [],
         "abis": []
       }
