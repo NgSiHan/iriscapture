@@ -1,18 +1,18 @@
 # IrisQualityCapture
 
-Android app for capturing and evaluating iris image quality using MediaPipe face landmarking and the BIQT Iris quality evaluation backend.
+Android app for capturing and evaluating iris image quality using MediaPipe face landmarking and the [iris-iqm](https://github.com/naveengv7/iris-iqm) quality evaluation backend.
 
 ---
 
 ## Overview
 
-Modified from [this repo](https://github.com/naveengv7/IrisQualityCapture), the app captures high-resolution eye images from the phone camera, sends them to a Flask server running on your PC, which evaluates them using the BIQT Iris model. Images that meet the quality thresholds are saved to the phone; poor-quality images are automatically discarded and the app retries.
+Modified from [this repo](https://github.com/naveengv7/IrisQualityCapture), the app captures high-resolution eye images from the phone camera, sends them to a Flask server running on your PC, which evaluates them using the iris-iqm library. Images that meet the quality thresholds are saved to the phone; poor-quality images are automatically discarded and the app retries.
 
 **Pipeline:**
 ```
 Phone camera → MediaPipe face detection → crop eye regions
-    → POST image to Flask server (WSL)
-    → BIQT Iris evaluation (CSV scores)
+    → POST image to Flask server (Windows)
+    → iris-iqm evaluation (ISO quality scores)
     → App checks scores against thresholds
     → Save if pass / discard and retry if fail
 ```
@@ -22,157 +22,76 @@ Phone camera → MediaPipe face detection → crop eye regions
 ## Prerequisites
 
 - Android phone and Windows PC on the **same Wi-Fi network**
-- WSL Ubuntu 22.04 on the PC
+- Python 3.8+ on the PC
 - Android Studio for building and installing the APK
 
 ---
 
-## Part 1: BIQT Iris Evaluation Server (WSL Setup)
+## Part 1: Quality Evaluation Server Setup
+
+The server runs directly on Windows, no WSL or C++ build tools required.
 
 ### 1.1 Install dependencies
 
-```bash
-sudo apt update
-sudo apt install -y cmake build-essential libopencv-dev git libjsoncpp-dev default-jdk
+Open a terminal in the repo root and run:
+
+```powershell
+pip install -r server\requirements.txt
 ```
 
-### 1.2 Build and install the BIQT framework
+This installs Flask and iris-iqm (which brings NumPy and OpenCV as its own dependencies).
 
-```bash
-git clone https://github.com/mitre/biqt
-cd biqt
-mkdir build && cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-make
-sudo make install
+### 1.2 Start the server
+
+```powershell
+python server\server.py
 ```
 
-Add the BIQT home to your environment (add this to `~/.bashrc` so it persists):
+Test it by sending a local eye image:
 
-```bash
-echo 'export BIQT_HOME=/usr/local' >> ~/.bashrc
-source ~/.bashrc
+```powershell
+curl -X POST http://localhost:8080/ -F "file=@C:\path\to\eye.png"
 ```
 
-### 1.3 Build and install the BIQTIris provider
+You should get JSON back with an `output` field containing CSV quality metrics (including `iso_overall_quality`).
 
-```bash
-cd ~
-git clone https://github.com/mitre/biqt-iris
-cd biqt-iris
-mkdir build && cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-make
-sudo make install
+### 1.3 Allow the firewall port (first time only)
+
+If the phone can't reach the server, add a Windows Firewall rule:
+
+```powershell
+# Run as Administrator
+netsh advfirewall firewall add rule name="iris-iqm Server" dir=in action=allow protocol=TCP localport=8080 profile=any
 ```
-
-### 1.4 Verify the CLI works
-
-```bash
-biqt -p BIQTIris /path/to/some/eye.png
-```
-
-You should see CSV output with metrics like `iso_overall_quality`, `iso_sharpness`, etc. If this doesn't work, do not proceed — the Flask server will also fail.
-
-### 1.5 Set up the Flask server
-
-```bash
-python3 -m venv ~/biqt-server/venv
-source ~/biqt-server/venv/bin/activate
-pip install flask
-```
-
-Create `~/biqt-server/server.py` with the following content:
-
-```python
-from flask import Flask, request, jsonify
-import subprocess, tempfile, os, json
-
-app = Flask(__name__)
-
-@app.route("/", methods=["POST"])
-def evaluate():
-    print(">>> Files received:", list(request.files.keys()))
-    print(">>> Form data:", list(request.form.keys()))
-    if "file" not in request.files:
-        return jsonify({"error": "No image provided"}), 400
-    image = request.files["file"]
-    with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-        image.save(tmp.name)
-        tmp_path = tmp.name
-    try:
-        result = subprocess.run(["biqt", "-p", "BIQTIris", tmp_path], capture_output=True, text=True)
-        return jsonify({"output": result.stdout, "error": result.stderr})
-    finally:
-        os.unlink(tmp_path)
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
-```
-
-> To do so via CLI, you may call ```nano ~/biqt-server/server.py```
-
-### 1.6 Start the server
-
-```bash
-source ~/biqt-server/venv/bin/activate
-python ~/biqt-server/server.py
-```
-
-Test it locally by copying a test image from Windows into WSL and send the image into the server:
-
-```bash
-cp /mnt/c/path/to/eye.png ~/eye.png
-curl -X POST http://localhost:5000/ -F "file=@/path/to/eye.png"
-```
-
-You should get JSON back with an `output` field containing the BIQT CSV.
 
 ---
 
-## Part 2: Network Configuration (WSL ↔ Phone)
+## Part 2: Network Configuration (PC ↔ Phone)
 
-WSL does not expose ports to your local network directly. You need to use Windows port forwarding.
+The phone connects directly to your Windows Wi-Fi IP.
 
-### 2.1 Find your IPs
-
-In WSL:
-```bash
-ip addr show eth0 | grep "inet "
-# Example: 172.29.91.154 — this is your WSL IP
-```
-
-In Windows (PowerShell or CMD):
-```
-ipconfig
-# Find your Wi-Fi adapter → IPv4 Address
-# Example: 10.206.158.144 — this is what the phone connects to
-```
-
-### 2.2 Set up port forwarding (run as Administrator in PowerShell)
+### 2.1 Find your Windows Wi-Fi IP
 
 ```powershell
-netsh interface portproxy add v4tov4 listenport=5000 listenaddress=0.0.0.0 connectport=5000 connectaddress=<WSL_IP>
-netsh advfirewall firewall add rule name="BIQT Server" dir=in action=allow protocol=TCP localport=5000 profile=any
+ipconfig
+# Find your Wi-Fi adapter → IPv4 Address
+# Example: 10.206.158.144
 ```
 
-Replace `<WSL_IP>` with your actual WSL IP from the step above (e.g. `172.29.91.154`).
+### 2.2 Test from the phone
 
-### 2.3 Test from the phone
-
-With the Flask server running in WSL, open a browser on your phone and navigate to:
+With the server running, open a browser on your phone and navigate to:
 ```
-http://<WINDOWS_WIFI_IP>:5000/
+http://<WINDOWS_WIFI_IP>:8080/
 ```
-You should see a method-not-allowed error (405), which confirms the server is reachable. A connection timeout means port forwarding isn't working.
+You should see a method-not-allowed error (405), which confirms the server is reachable. A connection timeout means the firewall rule isn't in place.
 
-### 2.4 Important: WSL IP changes on reboot
+### 2.3 Important: Wi-Fi IP may change
 
-Every time you restart your PC, the WSL IP may change. If the app stops working after a reboot:
+If the app stops working (e.g. after reconnecting to Wi-Fi):
 
-1. Check the new WSL IP: `ip addr show eth0 | grep "inet "`
-2. Re-run the `netsh interface portproxy add` command with the new IP
-3. Update `serverUrl` in `MainActivity3.java` if the Windows Wi-Fi IP also changed
+1. Re-run `ipconfig` to get the new IP
+2. Update `serverUrl` in `MainActivity3.java` to match
 
 ---
 
@@ -196,10 +115,10 @@ The app communicates over plain HTTP. Ensure `app/src/main/res/xml/network_secur
 In `MainActivity3.java`, find:
 
 ```java
-String serverUrl = "http://10.206.158.144:5000";
+String serverUrl = "http://10.206.157.72:8080";
 ```
 
-Change the IP to your Windows Wi-Fi IP. This is the only IP you need to update — the phone connects to Windows, and Windows forwards to WSL.
+Change the IP to your Windows Wi-Fi IP (from `ipconfig`). The phone connects directly to the Flask server running on Windows.
 
 ---
 
@@ -207,7 +126,7 @@ Change the IP to your Windows Wi-Fi IP. This is the only IP you need to update �
 
 All threshold configuration is in `MainActivity3.java` inside `sendImageToBIQTAndMaybeSave()`.
 
-### 4.1 BIQT quality thresholds
+### 4.1 Quality thresholds
 
 ```java
 Map<String, Float> thresholds = new HashMap<>();

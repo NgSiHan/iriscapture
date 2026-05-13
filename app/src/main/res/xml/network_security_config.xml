@@ -3,5 +3,7 @@
     <domain-config cleartextTrafficPermitted="true">
         <domain>192.168.1.109</domain>   <!-- ✅ your desktop server IP -->
         <domain>10.206.158.144</domain>
+        <domain>10.206.157.72</domain>
+        <domain>10.10.10.186</domain>
     </domain-config>
 </network-security-config>

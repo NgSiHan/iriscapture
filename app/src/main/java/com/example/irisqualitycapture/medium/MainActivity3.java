@@ -236,7 +236,7 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
 
     private void sendImageToBIQTAndMaybeSave(Bitmap cropBitmap, String imageLabel) {
         String eyeSide = imageLabel.contains("left") ? "left" : "right";
-        String serverUrl = "http://10.206.158.144:5000";
+        String serverUrl = "http://10.206.157.72:8080";
 
         // Unique temp filename per attempt — avoids overwrite race conditions
         String tempFilename = "temp_" + eyeSide + "_" + System.currentTimeMillis() + ".png";
@@ -260,7 +260,7 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
         }
 
         Map<String, Float> thresholds = new HashMap<>();
-        thresholds.put("iso_overall_quality", 0f);
+        thresholds.put("iso_overall_quality", 30f);
 //        thresholds.put("iso_greyscale_utilization", 6f);
 //        thresholds.put("iso_iris_pupil_concentricity", 90f);
 //        thresholds.put("iso_iris_pupil_contrast", 30f);

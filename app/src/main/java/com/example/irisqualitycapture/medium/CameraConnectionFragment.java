@@ -608,7 +608,22 @@ public class CameraConnectionFragment extends Fragment {
             }
 
             Size[] jpegSizes = map.getOutputSizes(ImageFormat.JPEG);
-            Size largest = Collections.max(Arrays.asList(jpegSizes), new CameraConnectionFragment.CompareSizesByArea());
+            // Cap at 12MP to avoid session configuration failures on very high-res sensors (e.g. S24 Ultra 200MP)
+            final long MAX_CAPTURE_PIXELS = 4032L * 3024L;
+            Size largest = null;
+            for (Size s : jpegSizes) {
+                long area = (long) s.getWidth() * s.getHeight();
+                if (area <= MAX_CAPTURE_PIXELS &&
+                        (largest == null || area > (long) largest.getWidth() * largest.getHeight())) {
+                    largest = s;
+                }
+            }
+            if (largest == null) {
+                largest = Collections.max(Arrays.asList(jpegSizes), new CameraConnectionFragment.CompareSizesByArea());
+            }
+
+            Log.d("CameraCapture", "Using JPEG size: " + largest.getWidth() + "x" + largest.getHeight());
+
 
             captureReader = ImageReader.newInstance(
                     largest.getWidth(),
