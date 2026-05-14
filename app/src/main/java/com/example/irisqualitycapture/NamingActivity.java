@@ -10,6 +10,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Switch;
 
 import com.example.irisqualitycapture.medium.MainActivity3;
 
@@ -17,6 +18,8 @@ public class NamingActivity extends Activity {
     private String sub_ID;
     private String session_ID;
     private String trial_Num;
+    private int image_Count = 4;
+    private boolean torch_Enabled = true;
 
     private String TAG = "NamingActivity:";
 
@@ -28,8 +31,6 @@ public class NamingActivity extends Activity {
         getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
         int height = displayMetrics.heightPixels;
         int width = displayMetrics.widthPixels;
-
-        //Log.d(TAG, "###########height:" + height + " Width" + width);
 
         setContentView(R.layout.naming);
 
@@ -75,6 +76,29 @@ public class NamingActivity extends Activity {
             }
         });
 
+        EditText usr_image_count = findViewById(R.id.editimagecount);
+        usr_image_count.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {}
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {}
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                String s = editable.toString();
+                if (!s.isEmpty()) {
+                    try {
+                        int parsed = Integer.parseInt(s);
+                        if (parsed > 0) image_Count = parsed;
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
+        });
+
+        Switch switchTorch = findViewById(R.id.switchTorch);
+        switchTorch.setOnCheckedChangeListener((v, checked) -> torch_Enabled = checked);
+
         Button next_button = findViewById(R.id.nextButton);
         next_button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -83,8 +107,32 @@ public class NamingActivity extends Activity {
                 intent.putExtra("N_subID", sub_ID);
                 intent.putExtra("N_sessionID", session_ID);
                 intent.putExtra("N_trialNum", trial_Num);
+                intent.putExtra("N_imageCount", image_Count);
+                intent.putExtra("N_torchEnabled", torch_Enabled);
                 startActivity(intent);
             }
         });
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+
+        String prevSub = intent.getStringExtra("PREV_subID");
+        if (prevSub == null) return;
+
+        ((EditText) findViewById(R.id.editsubid)).setText(prevSub);
+        ((EditText) findViewById(R.id.editsessionid)).setText(intent.getStringExtra("PREV_sessionID"));
+        ((EditText) findViewById(R.id.edittrailnum)).setText(intent.getStringExtra("PREV_trialNum"));
+        ((EditText) findViewById(R.id.editimagecount)).setText(String.valueOf(intent.getIntExtra("PREV_imageCount", 4)));
+        ((Switch) findViewById(R.id.switchTorch)).setChecked(intent.getBooleanExtra("PREV_torchEnabled", true));
+
+        // Sync backing fields
+        sub_ID        = prevSub;
+        session_ID    = intent.getStringExtra("PREV_sessionID");
+        trial_Num     = intent.getStringExtra("PREV_trialNum");
+        image_Count   = intent.getIntExtra("PREV_imageCount", 4);
+        torch_Enabled = intent.getBooleanExtra("PREV_torchEnabled", true);
     }
 }

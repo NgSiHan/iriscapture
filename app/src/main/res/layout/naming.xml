@@ -73,6 +73,50 @@
         app:layout_constraintTop_toBottomOf="@id/trailnum"
         android:layout_marginStart="20dp" />
 
+    <TextView
+        android:id="@+id/imagecount_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="20dp"
+        android:text="Images per Eye"
+        android:textSize="15sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/edittrailnum" />
+
+    <EditText
+        android:id="@+id/editimagecount"
+        android:layout_width="350dp"
+        android:layout_height="50dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="8dp"
+        android:inputType="number"
+        android:padding="15dp"
+        android:hint="Images per eye (default 4)"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/imagecount_label" />
+
+    <TextView
+        android:id="@+id/torch_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="24dp"
+        android:text="Flashlight"
+        android:textSize="15sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/editimagecount" />
+
+    <Switch
+        android:id="@+id/switchTorch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="8dp"
+        android:checked="true"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/torch_label" />
+
     <Button
         android:id="@+id/nextButton"
         android:layout_width="match_parent"

@@ -188,6 +188,7 @@ public class CameraConnectionFragment extends Fragment {
     private OverlayView overlayView;
     private MeteringRectangle[] afRegions;
     private Rect zoomRegion;
+    private boolean torchEnabled = true;
     private CameraCaptureSession cameraCaptureSession;
     private CaptureRequest.Builder captureRequestBuilder;
     private ImageReader captureReader;
@@ -222,6 +223,9 @@ public class CameraConnectionFragment extends Fragment {
     }
     public Rect getCurrentZoomRegion() {
         return zoomRegion;
+    }
+    public void setTorchEnabled(boolean enabled) {
+        this.torchEnabled = enabled;
     }
 
     private final CameraDevice.StateCallback stateCallback =
@@ -263,6 +267,9 @@ public class CameraConnectionFragment extends Fragment {
             focusBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, afRegions);
             focusBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
             focusBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
+            focusBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_ON);
+            focusBuilder.set(CaptureRequest.FLASH_MODE,
+                    torchEnabled ? CameraMetadata.FLASH_MODE_TORCH : CameraMetadata.FLASH_MODE_OFF);
 
             if (zoomRegion != null)
                 focusBuilder.set(CaptureRequest.SCALER_CROP_REGION, zoomRegion);
@@ -402,6 +409,8 @@ public class CameraConnectionFragment extends Fragment {
             captureBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
             captureBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_IDLE);
             captureBuilder.set(CaptureRequest.CONTROL_AE_MODE, CaptureRequest.CONTROL_AE_MODE_ON);
+            captureBuilder.set(CaptureRequest.FLASH_MODE,
+                    torchEnabled ? CameraMetadata.FLASH_MODE_TORCH : CameraMetadata.FLASH_MODE_OFF);
             captureBuilder.set(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_AUTO);
 
             captureBuilder.set(CaptureRequest.NOISE_REDUCTION_MODE, CaptureRequest.NOISE_REDUCTION_MODE_OFF);
@@ -668,6 +677,9 @@ public class CameraConnectionFragment extends Fragment {
             boolean usingAfRegion = false;
 
             focusBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+            focusBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_ON);
+            focusBuilder.set(CaptureRequest.FLASH_MODE,
+                    torchEnabled ? CameraMetadata.FLASH_MODE_TORCH : CameraMetadata.FLASH_MODE_OFF);
 
             if (afRegions != null) {
                 focusBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, afRegions);
@@ -866,7 +878,8 @@ public class CameraConnectionFragment extends Fragment {
 
                                 captureRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
                                 captureRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE, CameraMetadata.CONTROL_AE_MODE_ON);
-                                captureRequestBuilder.set(CaptureRequest.FLASH_MODE, CameraMetadata.FLASH_MODE_TORCH);
+                                captureRequestBuilder.set(CaptureRequest.FLASH_MODE,
+                                        torchEnabled ? CameraMetadata.FLASH_MODE_TORCH : CameraMetadata.FLASH_MODE_OFF);
 
                                 previewRequest = captureRequestBuilder.build();
                                 cameraCaptureSession.setRepeatingRequest(previewRequest, captureCallback, backgroundHandler);

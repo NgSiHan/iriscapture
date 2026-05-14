@@ -69,7 +69,7 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
     private FaceLandmarker faceLandmarkerCapture;
     private int leftEyeImageCount = 0;
     private int rightEyeImageCount = 0;
-    private final int totalImageCount = 4;
+    private int totalImageCount = 4;
     private String subjectID;
     private String sessionID;
     private String trialNum;
@@ -77,6 +77,7 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
 
     // Flag to prevent new captures after both eyes have passed
     private boolean captureComplete = false;
+    private boolean torchEnabled = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,6 +92,8 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
         if (sessionID == null) sessionID = "0";
         trialNum  = getIntent().getStringExtra("N_trialNum");
         if (trialNum == null) trialNum = "0";
+        totalImageCount = getIntent().getIntExtra("N_imageCount", 4);
+        torchEnabled    = getIntent().getBooleanExtra("N_torchEnabled", true);
 
         overlayView = findViewById(R.id.overlay_view);
 
@@ -126,6 +129,7 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
                 new Size(640, 360));
 
         camera2Fragment.setCamera(cameraId);
+        camera2Fragment.setTorchEnabled(torchEnabled);
         getSupportFragmentManager().beginTransaction().replace(R.id.container, camera2Fragment).commit();
 
         camera2Fragment.setOnImageCapturedListener(highResImage -> {
@@ -174,11 +178,11 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
 
                 final double SHARPNESS_THRESHOLD = 0.0;
 
-                if (leftEyeImageCount < 4 && sharpnessLeft >= SHARPNESS_THRESHOLD) {
+                if (leftEyeImageCount < totalImageCount && sharpnessLeft >= SHARPNESS_THRESHOLD) {
                     sendImageToBIQTAndMaybeSave(rotatedLeft, "left_eye");
                 }
 
-                if (rightEyeImageCount < 4 && sharpnessRight >= SHARPNESS_THRESHOLD) {
+                if (rightEyeImageCount < totalImageCount && sharpnessRight >= SHARPNESS_THRESHOLD) {
                     sendImageToBIQTAndMaybeSave(rotatedRight, "right_eye");
                 }
 
@@ -236,7 +240,7 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
 
     private void sendImageToBIQTAndMaybeSave(Bitmap cropBitmap, String imageLabel) {
         String eyeSide = imageLabel.contains("left") ? "left" : "right";
-        String serverUrl = "http://10.206.157.72:8080";
+        String serverUrl = "http://10.206.158.144:8080";
 
         // Unique temp filename per attempt — avoids overwrite race conditions
         String tempFilename = "temp_" + eyeSide + "_" + System.currentTimeMillis() + ".png";
@@ -275,6 +279,7 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
             @Override
             public void onSuccess(JSONObject result) {
                 runOnUiThread(() -> {
+                    if (captureComplete) return;
                     // Parse the raw CSV from the server response into a quality scores map
                     String csvOutput = result.optString("output", "");
                     JSONObject qualityScores = parseCSVToQualityScores(csvOutput);
@@ -306,7 +311,7 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
                         float centerX = cropBitmap.getWidth() / 2f;
                         float centerY = cropBitmap.getHeight() / 2f;
 
-                        for (int i = 1; i <= totalImageCount; i++) {
+                        for (int i = 1; i < totalImageCount; i++) {
                             int offsetX = 5 * i;
                             int offsetY = 5 * i;
 
@@ -329,16 +334,23 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
 
                         // Mark this eye as done
                         if (eyeSide.equals("left")) {
-                            leftEyeImageCount = 4;
+                            leftEyeImageCount = totalImageCount;
                         } else {
-                            rightEyeImageCount = 4;
+                            rightEyeImageCount = totalImageCount;
                         }
 
                         // If both eyes are done, finish — do NOT reset counts before finishing
-                        if (leftEyeImageCount == 4 && rightEyeImageCount == 4) {
+                        if (leftEyeImageCount >= totalImageCount && rightEyeImageCount >= totalImageCount) {
                             captureComplete = true;
                             Toast.makeText(MainActivity3.this, "All images captured! Exiting...", Toast.LENGTH_LONG).show();
-                            startActivity(new Intent(MainActivity3.this, NamingActivity.class));
+                            Intent returnIntent = new Intent(MainActivity3.this, NamingActivity.class);
+                            returnIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                            returnIntent.putExtra("PREV_subID",        subjectID);
+                            returnIntent.putExtra("PREV_sessionID",    sessionID);
+                            returnIntent.putExtra("PREV_trialNum",     String.valueOf(safeIncrement(trialNum)));
+                            returnIntent.putExtra("PREV_imageCount",   totalImageCount);
+                            returnIntent.putExtra("PREV_torchEnabled", torchEnabled);
+                            startActivity(returnIntent);
                             finish();
                         }
 
@@ -499,42 +511,49 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
             Rect zoomCrop = camera2Fragment.getCurrentZoomRegion();
             if (zoomCrop == null) zoomCrop = sensorArraySize;
 
-            float shiftPixels = 20f;
-            PointF center = new PointF(
-                    ((leftEye.x + rightEye.x) / 2f) + shiftPixels,
-                    (leftEye.y + rightEye.y) / 2f
-            );
+            // Convert each iris center (landmarks 468 / 473) from preview coords to sensor coords
+            float normLX = leftEye.x  / previewWidth;
+            float normLY = leftEye.y  / previewHeight;
+            float normRX = rightEye.x / previewWidth;
+            float normRY = rightEye.y / previewHeight;
 
-            float eyeDistance = (float) Math.hypot(
-                    rightEye.x - leftEye.x,
-                    rightEye.y - leftEye.y
-            );
+            float sensorLX = normLX * zoomCrop.width() + zoomCrop.left;
+            float sensorLY = normLY * zoomCrop.height() + zoomCrop.top;
+            float sensorRX = normRX * zoomCrop.width() + zoomCrop.left;
+            float sensorRY = normRY * zoomCrop.height() + zoomCrop.top;
 
-            float normalizedX = center.x / previewWidth;
-            float normalizedY = center.y / previewHeight;
-            float sensorX = normalizedX * zoomCrop.width() + zoomCrop.left;
-            float sensorY = normalizedY * zoomCrop.height() + zoomCrop.top;
+            // Square metering box: 15% of sensor width per iris
+            int halfBox = (int) (sensorArraySize.width() * 0.075f);
 
-            overlayView.setAfCenter(new PointF(center.x, center.y));
+            Rect afLeft = new Rect(
+                    (int) sensorLX - halfBox, (int) sensorLY - halfBox,
+                    (int) sensorLX + halfBox, (int) sensorLY + halfBox);
+            Rect afRight = new Rect(
+                    (int) sensorRX - halfBox, (int) sensorRY - halfBox,
+                    (int) sensorRX + halfBox, (int) sensorRY + halfBox);
+            afLeft.intersect(sensorArraySize);
+            afRight.intersect(sensorArraySize);
 
-            float scaleFactor = 10.0f;
-            int boxWidth = (int) (eyeDistance * scaleFactor * (zoomCrop.width() / (float) previewWidth));
-            int boxHeight = (int) (boxWidth * 0.1f);
-            boxWidth = Math.max(400, Math.min(boxWidth, 2000));
-            boxHeight = Math.max(80, Math.min(boxHeight, 200));
+            // Respect the device's max AF region count
+            Integer maxAfRegions = characteristics.get(CameraCharacteristics.CONTROL_MAX_REGIONS_AF);
+            if (maxAfRegions == null) maxAfRegions = 1;
 
-            Rect afRect = new Rect(
-                    (int) sensorX - boxWidth / 2,
-                    (int) sensorY - boxHeight / 2,
-                    (int) sensorX + boxWidth / 2,
-                    (int) sensorY + boxHeight / 2
-            );
-            afRect.intersect(sensorArraySize);
+            MeteringRectangle[] afRegions;
+            if (maxAfRegions >= 2) {
+                afRegions = new MeteringRectangle[]{
+                        new MeteringRectangle(afLeft,  MeteringRectangle.METERING_WEIGHT_MAX - 1),
+                        new MeteringRectangle(afRight, MeteringRectangle.METERING_WEIGHT_MAX - 1)
+                };
+            } else {
+                afRegions = new MeteringRectangle[]{
+                        new MeteringRectangle(afLeft, MeteringRectangle.METERING_WEIGHT_MAX - 1)
+                };
+            }
+            camera2Fragment.setAfRegion(afRegions);
 
-            camera2Fragment.setAfRegion(new MeteringRectangle[]{
-                    new MeteringRectangle(afRect, MeteringRectangle.METERING_WEIGHT_MAX - 1)
-            });
-            overlayView.setAfRect(afRect);
+            // Update overlay to show left iris AF centre
+            overlayView.setAfCenter(new PointF(leftEye.x, leftEye.y));
+            overlayView.setAfRect(afLeft);
 
             previewLeftEye = leftEye;
             previewRightEye = rightEye;
@@ -615,6 +634,10 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
         float B = 0f;
         if (pixelDistance <= 0) return -1f;
         return A / pixelDistance + B;
+    }
+
+    private int safeIncrement(String s) {
+        try { return Integer.parseInt(s) + 1; } catch (Exception e) { return 1; }
     }
 
     @Override
