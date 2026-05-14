@@ -29,7 +29,7 @@ Phone camera → MediaPipe face detection → crop eye regions
 
 ## Part 1: Quality Evaluation Server Setup
 
-The server runs directly on Windows, no WSL or C++ build tools required.
+The server runs directly on Windows — no WSL or C++ build tools required.
 
 ### 1.1 Install dependencies
 
@@ -88,49 +88,73 @@ You should see a method-not-allowed error (405), which confirms the server is re
 
 ### 2.3 Important: Wi-Fi IP may change
 
-If the app stops working (e.g. after reconnecting to Wi-Fi):
+If the app stops working (e.g. after reconnecting to Wi-Fi), update the server IP in **two places**:
 
-1. Re-run `ipconfig` to get the new IP
-2. Update `serverUrl` in `MainActivity3.java` to match
+**1. `app/src/main/res/values/strings.xml`**
+```xml
+<string name="server_url">http://YOUR_NEW_IP:8080</string>
+```
+
+**2. `app/src/main/res/xml/network_security_config.xml`**
+```xml
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain>YOUR_NEW_IP</domain>
+    </domain-config>
+</network-security-config>
+```
+
+Then rebuild and reinstall the APK.
 
 ---
 
 ## Part 3: Android App Setup
 
-### 3.1 Network security config
+### 3.1 Set the server URL and network config
 
-The app communicates over plain HTTP. Ensure `app/src/main/res/xml/network_security_config.xml` contains your Windows Wi-Fi IP:
+Follow the instructions in §2.3 above to configure both `strings.xml` and `network_security_config.xml` with your PC's Wi-Fi IP.
 
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<network-security-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain>YOUR_WINDOWS_WIFI_IP</domain>
-    </domain-config>
-</network-security-config>
-```
+### 3.2 Build and install
 
-### 3.2 Set the server URL
-
-In `MainActivity3.java`, find:
-
-```java
-String serverUrl = "http://10.206.157.72:8080";
-```
-
-Change the IP to your Windows Wi-Fi IP (from `ipconfig`). The phone connects directly to the Flask server running on Windows.
+Open the project in Android Studio, connect your phone (USB debugging on), and press **Run**.
 
 ---
 
-## Part 4: Configuring Quality Thresholds
+## Part 4: Using the App
+
+### 4.1 Main Menu
+
+On launch you'll see the **Iris Capture** screen with the following fields:
+
+| Field | Description |
+|-------|-------------|
+| **Subject ID** | Numeric subject identifier |
+| **Session ID** | Numeric session identifier |
+| **Trial Number** | Numeric trial identifier; auto-incremented after each successful capture |
+| **Images per Eye** | How many images to save per eye per trial (default: 4) |
+| **Flashlight** | Toggle the phone torch on/off during capture |
+
+Tap **Next** to start a capture session. After both eyes are captured, the app returns to this screen with all fields pre-filled and the trial number automatically incremented by 1.
+
+### 4.2 Gallery
+
+Tap the **gallery icon** (⊞) in the top-right of the main menu to browse all saved captures.
+
+- Captures are grouped by **Subject ID** (purple header cards)
+- Within each subject, each row shows a **Session · Trial** pair with left/right eye thumbnails
+- Tap a thumbnail to open the **image viewer**, where you can swipe through all variants for that eye
+
+---
+
+## Part 5: Configuring Quality Thresholds
 
 All threshold configuration is in `MainActivity3.java` inside `sendImageToBIQTAndMaybeSave()`.
 
-### 4.1 Quality thresholds
+### 5.1 Quality thresholds
 
 ```java
 Map<String, Float> thresholds = new HashMap<>();
-thresholds.put("iso_overall_quality", 0f);
+thresholds.put("iso_overall_quality", 30f);
 //        thresholds.put("iso_greyscale_utilization", 6f);
 //        thresholds.put("iso_iris_pupil_concentricity", 90f);
 //        thresholds.put("iso_iris_pupil_contrast", 30f);
@@ -147,9 +171,9 @@ thresholds.put("iso_overall_quality", 0f);
 - All enabled thresholds must pass for an image to be accepted
 - Start with just `iso_overall_quality` and tune from there once the pipeline is confirmed working
 
-### 4.2 Pre-filter sharpness threshold
+### 5.2 Pre-filter sharpness threshold
 
-Before even sending to the server, a local OpenCV sharpness check runs:
+Before sending to the server, a local OpenCV sharpness check runs:
 
 ```java
 final double SHARPNESS_THRESHOLD = 0.0;
@@ -157,21 +181,9 @@ final double SHARPNESS_THRESHOLD = 0.0;
 
 Increase this (e.g. to `30.0`) to filter out obviously blurry frames before they hit the server, saving round-trip time.
 
-### 4.3 Number of saved images per eye
-
-When an eye passes quality checks, the app saves the base image plus offset variants:
-
-```java
-private final int totalImageCount = 4;
-for (int i = 1; i <= totalImageCount; i++)
-```
-
-This saves 4 files per eye total: `subjectID_sessionID_trialNum_left.png` through `..._left_3.png`.
-You may change totalImageCount to vary the amount of iris images captured.
-
 ---
 
-## Part 5: Output Files
+## Part 6: Output Files
 
 Images are saved to the app's private external storage:
 
@@ -190,8 +202,10 @@ File naming convention:
 {subjectID}_{sessionID}_{trialNum}_{eye}.png        ← base image
 {subjectID}_{sessionID}_{trialNum}_{eye}_1.png      ← variant 1
 {subjectID}_{sessionID}_{trialNum}_{eye}_2.png      ← variant 2
-{subjectID}_{sessionID}_{trialNum}_{eye}_3.png      ← variant 3
+...
 ```
+
+The number of variants saved per eye is controlled by **Images per Eye** on the main menu (default 4).
 
 ---
 
@@ -200,5 +214,5 @@ File naming convention:
 - Hold the phone **15–20 cm** from the face
 - Keep the **whole face in frame** first so MediaPipe can detect landmarks
 - Hold **still for 2–3 seconds** to let autofocus lock on the eyes
-- The torch stays on continuously for stable lighting — ensure the room isn't too bright to cause glare
-- The app retries automatically if quality is poor — just hold steady
+- Toggle the flashlight on the main menu for stable, consistent lighting, but turn it off if there is glare
+- The app retries automatically if image quality is poor, so just hold steady

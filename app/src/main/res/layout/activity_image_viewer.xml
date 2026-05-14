@@ -11,10 +11,7 @@
         android:id="@+id/viewerToolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
-        app:titleTextColor="@android:color/white"
-        app:navigationIcon="@drawable/ic_arrow_back"
-        app:navigationIconTint="@android:color/white" />
+        app:navigationIcon="@drawable/ic_arrow_back" />
 
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/imagePager"

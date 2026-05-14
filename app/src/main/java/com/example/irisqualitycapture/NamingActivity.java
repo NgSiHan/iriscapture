@@ -2,18 +2,16 @@ package com.example.irisqualitycapture;
 
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.materialswitch.MaterialSwitch;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.Switch;
 
 import com.example.irisqualitycapture.medium.MainActivity3;
 
@@ -24,16 +22,10 @@ public class NamingActivity extends AppCompatActivity {
     private int image_Count = 4;
     private boolean torch_Enabled = true;
 
-    private String TAG = "NamingActivity:";
 
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-        int height = displayMetrics.heightPixels;
-        int width = displayMetrics.widthPixels;
 
         setContentView(R.layout.naming);
 
@@ -102,7 +94,7 @@ public class NamingActivity extends AppCompatActivity {
             }
         });
 
-        Switch switchTorch = findViewById(R.id.switchTorch);
+        MaterialSwitch switchTorch = findViewById(R.id.switchTorch);
         switchTorch.setOnCheckedChangeListener((v, checked) -> torch_Enabled = checked);
 
         Button next_button = findViewById(R.id.nextButton);
@@ -147,7 +139,7 @@ public class NamingActivity extends AppCompatActivity {
         ((EditText) findViewById(R.id.editsessionid)).setText(intent.getStringExtra("PREV_sessionID"));
         ((EditText) findViewById(R.id.edittrailnum)).setText(intent.getStringExtra("PREV_trialNum"));
         ((EditText) findViewById(R.id.editimagecount)).setText(String.valueOf(intent.getIntExtra("PREV_imageCount", 4)));
-        ((Switch) findViewById(R.id.switchTorch)).setChecked(intent.getBooleanExtra("PREV_torchEnabled", true));
+        ((MaterialSwitch) findViewById(R.id.switchTorch)).setChecked(intent.getBooleanExtra("PREV_torchEnabled", true));
 
         // Sync backing fields
         sub_ID        = prevSub;

@@ -173,8 +173,7 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
 
                 double sharpnessLeft = calculateSharpness(rotatedLeft);
                 double sharpnessRight = calculateSharpness(rotatedRight);
-                Log.d("BIQT_LOG", "gh" + sharpnessLeft);
-                Log.d("BIQT_LOG", "gh" + sharpnessRight);
+                Log.d("BIQT_LOG", "sharpness left=" + sharpnessLeft + " right=" + sharpnessRight);
 
                 final double SHARPNESS_THRESHOLD = 0.0;
 
@@ -240,7 +239,7 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
 
     private void sendImageToBIQTAndMaybeSave(Bitmap cropBitmap, String imageLabel) {
         String eyeSide = imageLabel.contains("left") ? "left" : "right";
-        String serverUrl = "http://10.206.158.144:8080";
+        String serverUrl = getString(R.string.server_url);
 
         // Unique temp filename per attempt — avoids overwrite race conditions
         String tempFilename = "temp_" + eyeSide + "_" + System.currentTimeMillis() + ".png";
@@ -593,20 +592,6 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
         return sharpness;
     }
 
-    private double calculateContrast(Bitmap bitmap) {
-        Mat mat = new Mat();
-        Utils.bitmapToMat(bitmap, mat);
-        Mat gray = new Mat();
-        Imgproc.cvtColor(mat, gray, Imgproc.COLOR_BGR2GRAY);
-        MatOfDouble mean = new MatOfDouble();
-        MatOfDouble stddev = new MatOfDouble();
-        Core.meanStdDev(gray, mean, stddev);
-        double contrast = stddev.get(0, 0)[0];
-        gray.release();
-        mat.release();
-        return contrast;
-    }
-
     private Bitmap cropEyeRegion(Bitmap sourceBitmap, PointF center, String eyeSide) {
         final int cropWidth = 300;
         final int cropHeight = 300;
@@ -644,6 +629,7 @@ public class MainActivity3 extends AppCompatActivity implements ImageReader.OnIm
     protected void onDestroy() {
         super.onDestroy();
         if (faceLandmarker != null) faceLandmarker.close();
+        if (faceLandmarkerCapture != null) faceLandmarkerCapture.close();
         backgroundExecutor.shutdown();
     }
 }

@@ -20,6 +20,9 @@ public class OverlayView extends View {
     private Paint boxPaint;
     private Paint afRectPaint;
     private Paint zoomRectPaint;
+    private Paint afCenterPaint;
+    private Paint faceCenterPaint;
+    private Paint debugPaint;
     private int sourceWidth;
     private int sourceHeight;
 
@@ -57,6 +60,20 @@ public class OverlayView extends View {
         zoomRectPaint.setColor(Color.YELLOW);
         zoomRectPaint.setStyle(Paint.Style.STROKE);
         zoomRectPaint.setStrokeWidth(4);
+
+        afCenterPaint = new Paint();
+        afCenterPaint.setColor(Color.CYAN);
+        afCenterPaint.setStyle(Paint.Style.FILL);
+
+        faceCenterPaint = new Paint();
+        faceCenterPaint.setColor(Color.MAGENTA);
+        faceCenterPaint.setStyle(Paint.Style.STROKE);
+        faceCenterPaint.setStrokeWidth(6);
+
+        debugPaint = new Paint();
+        debugPaint.setColor(Color.WHITE);
+        debugPaint.setTextSize(40);
+        debugPaint.setShadowLayer(5.0f, 2.0f, 2.0f, Color.BLACK);
     }
 
     public void setLandmarks(List<PointF> points, int sourceWidth, int sourceHeight) {
@@ -114,19 +131,12 @@ public class OverlayView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
 
-
         if (sourceWidth <= 0 || sourceHeight <= 0 || landmarkPoints.isEmpty()) {
             return;
         }
 
         float scaleX = (float) getWidth() / sourceWidth;
         float scaleY = (float) getHeight() / sourceHeight;
-
-        for (int i = 0; i < landmarkPoints.size(); i++) {
-            PointF point = landmarkPoints.get(i);
-            float x = point.x * scaleX;
-            float y = point.y * scaleY;
-        }
 
         if (afRectSensor != null) {
             RectF af = scaleRect(afRectSensor);
@@ -145,27 +155,16 @@ public class OverlayView extends View {
         if (afCenter != null) {
             float cx = afCenter.x * scaleX;
             float cy = afCenter.y * scaleY;
-            Paint afCenterPaint = new Paint();
-            afCenterPaint.setColor(Color.CYAN);
-            afCenterPaint.setStyle(Paint.Style.FILL);
             canvas.drawCircle(cx, cy, 12, afCenterPaint);
         }
 
         if (faceCenter != null) {
             float cx = faceCenter.x * scaleX;
             float cy = faceCenter.y * scaleY;
-            Paint faceCenterPaint = new Paint();
-            faceCenterPaint.setColor(Color.MAGENTA);
-            faceCenterPaint.setStyle(Paint.Style.STROKE);
-            faceCenterPaint.setStrokeWidth(6);
             canvas.drawCircle(cx, cy, 20, faceCenterPaint);
         }
 
         if (debugText != null) {
-            Paint debugPaint = new Paint();
-            debugPaint.setColor(Color.WHITE);
-            debugPaint.setTextSize(40);
-            debugPaint.setShadowLayer(5.0f, 2.0f, 2.0f, Color.BLACK);
             canvas.drawText(debugText, 20, 60, debugPaint);
         }
     }

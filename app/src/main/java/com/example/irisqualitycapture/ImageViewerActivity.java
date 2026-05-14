@@ -100,7 +100,9 @@ public class ImageViewerActivity extends AppCompatActivity {
             holder.imageView.setTag(path);
 
             executor.execute(() -> {
-                Bitmap bmp = BitmapFactory.decodeFile(path);
+                BitmapFactory.Options opts = new BitmapFactory.Options();
+                opts.inSampleSize = 2; // 300px iris images → 150px, still crisp on screen
+                Bitmap bmp = BitmapFactory.decodeFile(path, opts);
                 mainHandler.post(() -> {
                     if (path.equals(holder.imageView.getTag())) {
                         holder.imageView.setImageBitmap(bmp);

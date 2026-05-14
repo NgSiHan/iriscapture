@@ -2,8 +2,6 @@ package com.example.irisqualitycapture.medium;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.media.Image;
 import android.os.Environment;
@@ -58,11 +56,8 @@ public class ImageUtils {
             file.delete(); // Optional: delete existing file with same name
         }
 
-        try {
-            FileOutputStream out = new FileOutputStream(file);
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); // PNG format, highest quality
-            out.flush();
-            out.close();
+        try (FileOutputStream out = new FileOutputStream(file)) {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
             Log.d("ImageSave", "Saved image to: " + file.getAbsolutePath());
         } catch (Exception e) {
             Log.e("ImageSave", "Failed to save image: " + e.getMessage());
@@ -131,33 +126,6 @@ public class ImageUtils {
                 out[yp++] = YUV2RGB(0xff & yData[pY + i], 0xff & uData[uv_offset], 0xff & vData[uv_offset]);
             }
         }
-    }
-
-    /**
-     * Scales the given bitmap image to a larger size and returns the upscaled image.
-     * The upscaled image will be drawn on a canvas with a white background.
-     *
-     * @param originalImage The original cropped image to be scaled.
-     * @param scaleFactor The factor by which to scale the image.
-     * @return The upscaled image with a white background.
-     */
-    static Bitmap upscaleImage(Bitmap originalImage, float scaleFactor) {
-        // Calculate the new width and height based on the scale factor
-        int newWidth = (int) (originalImage.getWidth() * scaleFactor);
-        int newHeight = (int) (originalImage.getHeight() * scaleFactor);
-
-        // Scale the original image
-        Bitmap scaledImage = Bitmap.createScaledBitmap(originalImage, newWidth, newHeight, true);
-
-        // Create a larger canvas with a white background
-        Bitmap finalImage = Bitmap.createBitmap(newWidth, newHeight, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(finalImage);
-        canvas.drawColor(Color.WHITE);
-
-        // Draw the scaled image onto the canvas
-        canvas.drawBitmap(scaledImage, 0, 0, null);
-
-        return finalImage;
     }
 
 

@@ -8,9 +8,7 @@
         android:id="@+id/naming_toolbar"
         android:layout_width="0dp"
         android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"
         app:title="Iris Capture"
-        app:titleTextColor="@android:color/white"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -26,17 +24,25 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/naming_toolbar" />
 
-    <EditText
-        android:id="@+id/editsubid"
-        android:layout_width="350dp"
-        android:layout_height="50dp"
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilSubid"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
         android:layout_marginTop="8dp"
-        android:inputType="number"
-        android:padding="15dp"
-        android:hint="Enter Subject ID"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/subid"
-        android:layout_marginStart="20dp" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/subid">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/editsubid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:hint="Enter Subject ID" />
+    </com.google.android.material.textfield.TextInputLayout>
 
     <TextView
         android:id="@+id/sessionid"
@@ -46,20 +52,28 @@
         android:text="Session ID"
         android:textSize="15sp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/editsubid"
+        app:layout_constraintTop_toBottomOf="@id/tilSubid"
         android:layout_marginStart="20dp" />
 
-    <EditText
-        android:id="@+id/editsessionid"
-        android:layout_width="350dp"
-        android:layout_height="50dp"
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilSessionid"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
         android:layout_marginTop="8dp"
-        android:inputType="number"
-        android:padding="15dp"
-        android:hint="Enter Session ID"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/sessionid"
-        android:layout_marginStart="20dp" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/sessionid">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/editsessionid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:hint="Enter Session ID" />
+    </com.google.android.material.textfield.TextInputLayout>
 
     <TextView
         android:id="@+id/trailnum"
@@ -69,20 +83,28 @@
         android:text="Trial Number"
         android:textSize="15sp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/editsessionid"
+        app:layout_constraintTop_toBottomOf="@id/tilSessionid"
         android:layout_marginStart="20dp" />
 
-    <EditText
-        android:id="@+id/edittrailnum"
-        android:layout_width="350dp"
-        android:layout_height="50dp"
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilTrailnum"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
         android:layout_marginTop="8dp"
-        android:inputType="number"
-        android:padding="15dp"
-        android:hint="Enter Trial Number"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/trailnum"
-        android:layout_marginStart="20dp" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/trailnum">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/edittrailnum"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:hint="Enter Trial Number" />
+    </com.google.android.material.textfield.TextInputLayout>
 
     <TextView
         android:id="@+id/imagecount_label"
@@ -93,19 +115,27 @@
         android:text="Images per Eye"
         android:textSize="15sp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/edittrailnum" />
+        app:layout_constraintTop_toBottomOf="@id/tilTrailnum" />
 
-    <EditText
-        android:id="@+id/editimagecount"
-        android:layout_width="350dp"
-        android:layout_height="50dp"
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilImagecount"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
         android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
         android:layout_marginTop="8dp"
-        android:inputType="number"
-        android:padding="15dp"
-        android:hint="Images per eye (default 4)"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/imagecount_label" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/imagecount_label">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/editimagecount"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:hint="Images per eye (default 4)" />
+    </com.google.android.material.textfield.TextInputLayout>
 
     <TextView
         android:id="@+id/torch_label"
@@ -116,9 +146,9 @@
         android:text="Flashlight"
         android:textSize="15sp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/editimagecount" />
+        app:layout_constraintTop_toBottomOf="@id/tilImagecount" />
 
-    <Switch
+    <com.google.android.material.materialswitch.MaterialSwitch
         android:id="@+id/switchTorch"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -128,17 +158,16 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/torch_label" />
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/nextButton"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="20dp"
         android:layout_marginEnd="20dp"
         android:layout_marginBottom="30dp"
-        android:background="@drawable/btn_custom"
         android:text="Next"
-        android:textColor="@android:color/white"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

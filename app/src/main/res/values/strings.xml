@@ -1,14 +1,9 @@
 <resources>
     <string name="app_name">IrisQualityCapture</string>
     <string name="session_id">Session ID</string>
-    <string name="subject_id">Subject ID:</string>
-    <string name="left_right_eye">Left/Right Eye</string>
-    <string name="trail_number">Trail Number</string>
-    <string name="_0">0</string>
+    <string name="subject_id">Subject ID</string>
     <string name="left">Left</string>
     <string name="right">Right</string>
-    <string name="spoof">Spoof</string>
-    <string name="spoof_type">Spoof Type</string>
-    <string name="live">Live</string>
     <string name="next">Next</string>
+    <string name="server_url">http://10.206.158.144:8080</string>
 </resources>
