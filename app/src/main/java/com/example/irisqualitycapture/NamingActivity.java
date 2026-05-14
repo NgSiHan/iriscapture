@@ -1,12 +1,15 @@
 package com.example.irisqualitycapture;
 
-import android.app.Activity;
+import androidx.appcompat.app.AppCompatActivity;
+import com.google.android.material.appbar.MaterialToolbar;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -14,7 +17,7 @@ import android.widget.Switch;
 
 import com.example.irisqualitycapture.medium.MainActivity3;
 
-public class NamingActivity extends Activity {
+public class NamingActivity extends AppCompatActivity {
     private String sub_ID;
     private String session_ID;
     private String trial_Num;
@@ -33,6 +36,9 @@ public class NamingActivity extends Activity {
         int width = displayMetrics.widthPixels;
 
         setContentView(R.layout.naming);
+
+        MaterialToolbar toolbar = findViewById(R.id.naming_toolbar);
+        setSupportActionBar(toolbar);
 
         EditText usr_sub_id = findViewById(R.id.editsubid);
         usr_sub_id.addTextChangedListener(new TextWatcher() {
@@ -112,6 +118,21 @@ public class NamingActivity extends Activity {
                 startActivity(intent);
             }
         });
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_naming, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_gallery) {
+            startActivity(new Intent(this, GalleryActivity.class));
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
